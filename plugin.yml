@@ -1,0 +1,29 @@
+name: WorldWarp
+main: Raz.WorldWarp.WorldWarp
+version: 2.3
+commands:
+  wcreate:
+    description: Creates a new world
+    usage: /<command> [name] [environmate] <seed>
+  wlist:
+    description: List worlds
+    usage: /<command>    
+  wwarp:
+    description: Warp to worlds
+    usage: /<command> [name]  
+  wdelete:
+    description: Delete worlds
+    usage: /<command> [name]      
+permissions:
+    WorldWarp.wcreate:
+        description: Allows you to create a world
+        default: false
+    WorldWarp.wdelete:
+        description: Allows you to delete a world
+        default: false
+    WorldWarp.wwarp:
+        description: Allows you to warp to a world
+        default: false
+    WorldWarp.wlist:
+        description: Allows you to list worlds
+        default: false
