@@ -1,19 +1,26 @@
-name: WorldWarp
-main: raz.worldwarp.WorldWarp
-version: 2.4
+name: DarkPortals
+main: net.thedarktide.multiworld.DarkPortalsPlugin
+authors: [raz, Celeo]
+version: 1.2
 commands:
   wcreate:
     description: Creates a new world
     usage: /<command> [name] [environmate] <seed>
   wlist:
     description: List worlds
-    usage: /<command>    
+    usage: /<command>
   wwarp:
     description: Warp to worlds
-    usage: /<command> [name]  
+    usage: /<command> [name]
   wdelete:
     description: Delete worlds
-    usage: /<command> [name]      
+    usage: /<command> [name]
+  wunload:
+    description: Unloads a world
+    usage: /<command> [name]
+  wwho:
+    description: Lists players in a world
+    usage: /<command> [name]
 permissions:
     WorldWarp.wcreate:
         description: Allows you to create a world
