@@ -1,11 +1,13 @@
-package raz.worldwarp;
+package Raz.WorldWarp;
 
+import Raz.WorldWarp.Commands.*;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Set;
 import java.util.List;
 import java.util.logging.Logger;
+import java.util.HashMap;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -14,91 +16,94 @@ import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.config.Configuration;
-
+import org.bukkit.WorldCreator;
+import org.bukkit.configuration.InvalidConfigurationException;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.plugin.PluginDescriptionFile;
 import com.nijiko.permissions.PermissionHandler;
 import com.nijikokun.bukkit.Permissions.Permissions;
 
-@SuppressWarnings("deprecation")
 public class WorldWarp extends JavaPlugin {
-	public static Configuration Worlds;
-	public static Configuration Config;
-	private static final Logger log = Logger.getLogger("Minecraft");
-	public static boolean isperm = false;
+	public static YamlConfiguration Worlds;
+	public static YamlConfiguration Config;
+	private static final Logger log = Logger.getLogger("Minecraft");	
+        private static HashMap<YamlConfiguration, File> configFiles = new HashMap<YamlConfiguration, File>();
 
-	public static PermissionHandler permissions = null;
+	private static PermissionHandler permissions = null;
 
+        public static Boolean Save(YamlConfiguration yamlConfig) {
+            if(configFiles.containsKey(yamlConfig)) {
+                try {
+                    yamlConfig.save(configFiles.get(yamlConfig));
+                } catch(IOException ex) {
+                    return false;
+                }
+            } else
+                return false;
+            return true;
+        }
+        
+        public static Boolean Load(YamlConfiguration yamlConfig) {
+            if(configFiles.containsKey(yamlConfig)) {
+                try {
+                    yamlConfig.load(configFiles.get(yamlConfig));
+                } catch(FileNotFoundException notfound) {
+                    return false;
+                } catch(IOException io) {
+                    return false;
+                } catch(InvalidConfigurationException invalid) {
+                    return false;
+                }
+            } else
+                return false;
+            return true;
+        }
+        
+        @Override
 	public void onEnable() {
-		log.info("[WorldWarp] Enabled! Running 2.3");
+                PluginDescriptionFile pdfFile = this.getDescription();
+		log.info(("[WorldWarp] Enabled! Running v" + pdfFile.getVersion()));
 
 		getDataFolder().mkdirs();
-		if (!new File(getDataFolder().getPath() + "/Worlds.yml").exists()) {
+                File Worldsfile = new File(getDataFolder().getPath() + "/Worlds.yml");
+                Worlds = new YamlConfiguration();
+                File Configfile = new File(getDataFolder().getPath() + "/Config.yml");
+                Config = new YamlConfiguration();
+                
+                configFiles.put(Worlds, Worldsfile);
+                configFiles.put(Config, Configfile);
+                
+                initWorlds();
+                
+		if (!Worldsfile.exists()) {
 			log.info("[WorldWarp] Creating worlds.yml");
 			try {
-				new File(getDataFolder().getPath() + "/Worlds.yml")
-						.createNewFile();
-				Worlds = new Configuration(new File(getDataFolder().getPath()
-						+ "/Worlds.yml"));
-				Worlds.load();
-				try {
-					if (new FileInputStream(new File(getDataFolder().getPath()
-							+ "/Worlds.yml")).read() == -1) {
-						List<World> worlds = getServer().getWorlds();
-						for (int i = 0; i < worlds.size(); i++) {
-							String n = ((World) worlds.get(i)).getName();
-							String Env = ((World) worlds.get(i))
-									.getEnvironment().name();
-							Long seed = Long.valueOf(((World) worlds.get(i))
-									.getSeed());
-							Worlds.setProperty("worlds." + n + ".name", n);
-							Worlds.setProperty("worlds." + n + ".environmate",
-									Env);
-							Worlds.setProperty("worlds." + n + ".seed", seed);
-						}
-						Worlds.save();
-					}
-				} catch (FileNotFoundException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
+                                if(Worldsfile.createNewFile()) {
+                                    log.warning("[WorldWarp] Could not create worlds.yml!");
+                                }
+			} catch (IOException e) {			
+                            
 			}
-		}
-		if (!new File(getDataFolder().getPath() + "/Config.yml").exists()) {
+		} else {
+                    Load(Worlds);
+                }
+		if (!Configfile.exists()) {
 			log.info("[WorldWarp] Creating Config.yml");
-			try {
-				new File(getDataFolder().getPath() + "/Config.yml")
-						.createNewFile();
-				Config = new Configuration(new File(getDataFolder().getPath()
-						+ "/Config.yml"));
-				Config.load();
-				try {
-					if (new FileInputStream(new File(getDataFolder().getPath()
-							+ "/Config.yml")).read() == -1) {
-						Config.setProperty("Settings.permissions.use", "true");
-						Config.save();
-					}
-				} catch (FileNotFoundException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+			try {   
+                            if(Configfile.createNewFile()) {
+                                log.warning("[WorldWarp] Could not create config.yml!");
+                            }
+                            Config.set("Settings.permissions.use", "true");
+                            Save(Config);
 			} catch (IOException e) {
-				e.printStackTrace();
+				
 			}
-		}
-
-		Worlds = new Configuration(new File(getDataFolder().getPath()
-				+ "/Worlds.yml"));
-		Worlds.load();
-		Config = new Configuration(new File(getDataFolder().getPath()
-				+ "/Config.yml"));
-		Config.load();
-
+		} else {
+                    Load(Config);
+                }
+		
 		setupPermissions();
-
 		loadWorlds();
 	}
 
@@ -107,7 +112,21 @@ public class WorldWarp extends JavaPlugin {
 		if (!(test == null))
 			permissions = ((Permissions) test).getHandler();
 	}
+        
+        public void initWorlds() {
+            List<World> worlds = getServer().getWorlds();
+            for(World world : worlds) {            
+                String n = world.getName();
+                String Env = world.getEnvironment().name();
+                Long seed = world.getSeed();
+                Worlds.set("worlds." + n + ".name", n);
+                Worlds.set("worlds." + n + ".environment", Env);
+                Worlds.set("worlds." + n + ".seed", seed);                
+            }
+            Save(Worlds);
+        }
 
+        @Override
 	public boolean onCommand(CommandSender sender, Command cmd, String label,
 			String[] args) {
 		if ((sender instanceof ConsoleCommandSender)) {
@@ -120,15 +139,18 @@ public class WorldWarp extends JavaPlugin {
 			return false;
 
 		if (hasPerm(player, label.toLowerCase())) {
-			if (label.equalsIgnoreCase("wcreate")) {
-				new WWorlds(player, args, Worlds, Config);
-			} else if (label.equalsIgnoreCase("wwarp")) {
-				new WWarp(player, args, Worlds, Config);
-			} else if (label.equalsIgnoreCase("wlist")) {
-				new WList(player, Worlds, Config);
-			} else if (label.equalsIgnoreCase("wdelete")) {
-				new WDelete(player, args, Worlds, Config);
-			}
+                    WCommand command = null;
+                    if (label.equalsIgnoreCase("wcreate")) {
+                            command = new WWorlds();
+                    } else if (label.equalsIgnoreCase("wwarp")) {
+                            command = new WWarp();
+                    } else if (label.equalsIgnoreCase("wlist")) {
+                            command = new WList();
+                    } else if (label.equalsIgnoreCase("wdelete")) {
+                            command = new WDelete();
+                    } else
+                        return false;
+                    command.run(player, args, Worlds, Config);
 		}
 		return true;
 	}
@@ -151,14 +173,18 @@ public class WorldWarp extends JavaPlugin {
 	}
 
 	public void loadWorlds() {
-		List<String> worldNames = Worlds.getKeys("worlds");
+                ConfigurationSection section = Worlds.getConfigurationSection("worlds");
+                if(section == null)
+                    return;
+                
+		Set<String> worldNames = section.getKeys(false);
 		int i = 0;
 		System.out.println("[WorldWarp]: Loading worlds");
 		if (worldNames != null) {
 			for (String name : worldNames) {
-				String env = Worlds
-						.getString("worlds." + name + ".environmate");
-				getServer().createWorld(name, getEnv(env));
+				String env = Worlds.getString("worlds." + name + ".environment");
+                                WorldCreator creator = WorldCreator.name(name); creator.environment(getEnv(env));
+				getServer().createWorld(creator);
 				getServer().getWorld(name).setPVP(true);
 				i++;
 				System.out.println("[WorldWarp]: Loaded " + i + "/"
@@ -170,6 +196,7 @@ public class WorldWarp extends JavaPlugin {
 		}
 	}
 
+        @Override
 	public void onDisable() {
 		log.info("[WorldWarp]: Disabled!");
 	}

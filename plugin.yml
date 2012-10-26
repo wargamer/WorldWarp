@@ -1,11 +1,11 @@
-name: DarkPortals
-main: net.thedarktide.multiworld.DarkPortalsPlugin
-authors: [raz, Celeo]
-version: 1.2
+name: WorldWarp
+main: Raz.WorldWarp.WorldWarp
+authors: [raz, Celeo, Wargamer2010]
+version: 3.0
 commands:
   wcreate:
     description: Creates a new world
-    usage: /<command> [name] [environmate] <seed>
+    usage: /<command> [name] [environment] <seed>
   wlist:
     description: List worlds
     usage: /<command>
